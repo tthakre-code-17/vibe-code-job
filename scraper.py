@@ -23,10 +23,34 @@ def init_db():
     conn.commit()
     conn.close()
 
-def is_visa_or_remote(content_text, location_text):
+def is_visa_or_relocation(content_text, location_text):
     text = (content_text + " " + location_text).lower()
-    visa_keywords = ['visa', 'sponsorship', 'relocation', 'work permit', 'anywhere', 'remote']
+    # Strictly check for actual visa/relocation terms, excluding generic terms like "anywhere"
+    visa_keywords = [
+        'visa', 'sponsorship', 'relocation', 'work permit', 
+        'relocate', 'visa support', 'h1b', 'h-1b', 'immigration'
+    ]
     return any(kw in text for kw in visa_keywords)
+
+def extract_tech_stack(content_text):
+    text = content_text.lower()
+    tech_keywords = [
+        'python', 'java', 'c++', 'golang', 'go', 'rust', 'typescript', 'javascript', 
+        'react', 'node', 'vue', 'angular', 'django', 'flask', 'spring', 
+        'aws', 'gcp', 'azure', 'kubernetes', 'docker', 'terraform', 
+        'sql', 'postgresql', 'mysql', 'mongodb', 'redis', 'kafka',
+        'graphql', 'rest', 'distributed systems', 'microservices'
+    ]
+    found_tech = [tech.title() if tech not in ['aws', 'gcp', 'sql', 'rest', 'c++'] else tech.upper() for tech in tech_keywords if kw_in_text(tech, text)]
+    
+    if found_tech:
+        return ", ".join(list(set(found_tech))[:6])
+    return "Software Engineering, CS Fundamentals"
+
+def kw_in_text(kw, text):
+    # Word boundary match helper to prevent partial matches like 'go' in 'algorithm'
+    import re
+    return bool(re.search(r'\b' + re.escape(kw) + r'\b', text))
 
 def fetch_greenhouse_jobs(company_slug, company_name, wlb_tier):
     url = f"https://boards-api.greenhouse.io/v1/boards/{company_slug}/jobs?content=true"
@@ -39,24 +63,32 @@ def fetch_greenhouse_jobs(company_slug, company_name, wlb_tier):
                 title = job.get('title', '')
                 title_lower = title.lower()
 
-                if any(kw in title_lower for kw in ['software', 'engineer', 'developer', 'backend', 'frontend']) and not any(kw in title_lower for kw in ['staff', 'principal', 'director', 'manager', 'lead']):
+                # Filter engineering roles
+                if any(kw in title_lower for kw in ['software', 'engineer', 'developer', 'backend', 'frontend', 'full stack', 'systems']) and not any(kw in title_lower for kw in ['staff', 'principal', 'director', 'manager', 'lead']):
                     location = job.get('location', {}).get('name', 'Remote')
                     content = job.get('content', '')
 
-                    # Check for explicit visa/relocation/remote
-                    has_visa = is_visa_or_remote(content, location)
-                    visa_status = "Yes (Relocation / Sponsorship / Remote)" if has_visa else "Check Job Description"
+                    # Strict Visa Check
+                    has_visa = is_visa_or_relocation(content, location)
+                    visa_status = "Yes (Relocation / Sponsorship)" if has_visa else "Check Job Description"
 
+                    # Role Level Check
                     role_level = "SDE-2 / Mid"
-                    if any(kw in title_lower for kw in ['junior', 'associate', 'i', 'entry', 'grad', 'sde 1', 'sde-1']):
+                    if any(kw in title_lower for kw in ['junior', 'associate', ' i', 'entry', 'grad', 'sde 1', 'sde-1', 'sde1']):
                         role_level = "SDE-1 / Entry"
 
-                    apply_link = job.get('absolute_url', '#')
-                    is_india = 1 if 'india' in location.lower() or 'bengaluru' in location.lower() or 'pune' in location.lower() or 'hyderabad' in location.lower() else 0
+                    # Fix Apply Link Resolution
+                    apply_link = job.get('absolute_url') or f"https://boards.greenhouse.io/{company_slug}/jobs/{job.get('id')}"
+
+                    # Requirements Extraction
+                    tech_requirements = extract_tech_stack(content)
+
+                    # Location Check
+                    is_india = 1 if any(loc in location.lower() for loc in ['india', 'bengaluru', 'bangalore', 'pune', 'hyderabad', 'gurugram', 'mumbai', 'noida']) else 0
 
                     jobs_added.append((
                         company_name, title, role_level, location, wlb_tier, visa_status,
-                        "Core CS, Data Structures, System Design", apply_link, is_india
+                        tech_requirements, apply_link, is_india
                     ))
     except Exception as e:
         print(f"Error fetching Greenhouse for {company_name}: {e}")
@@ -68,11 +100,19 @@ def scrape_visa_jobs():
     cursor = conn.cursor()
 
     all_jobs = []
-    all_jobs.extend(fetch_greenhouse_jobs("stripe", "Stripe", "Tier 1 (High WLB)"))
-    all_jobs.extend(fetch_greenhouse_jobs("databricks", "Databricks", "Tier 1 (High WLB)"))
-    all_jobs.extend(fetch_greenhouse_jobs("gitlab", "GitLab", "Tier 1 (High WLB)"))
-    all_jobs.extend(fetch_greenhouse_jobs("coinbase", "Coinbase", "Tier 1 (High WLB)"))
-    all_jobs.extend(fetch_greenhouse_jobs("cloudflare", "Cloudflare", "Tier 1 (High WLB)"))
+    # Core tracked companies
+    companies = [
+        ("stripe", "Stripe", "Tier 1 (High WLB)"),
+        ("databricks", "Databricks", "Tier 1 (High WLB)"),
+        ("gitlab", "GitLab", "Tier 1 (High WLB)"),
+        ("coinbase", "Coinbase", "Tier 1 (High WLB)"),
+        ("cloudflare", "Cloudflare", "Tier 1 (High WLB)"),
+        ("airbnb", "Airbnb", "Tier 1 (High WLB)"),
+        ("nutanix", "Nutanix", "Tier 1 (High WLB)")
+    ]
+
+    for slug, name, tier in companies:
+        all_jobs.extend(fetch_greenhouse_jobs(slug, name, tier))
 
     for job in all_jobs:
         cursor.execute('''
