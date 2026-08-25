@@ -14,6 +14,7 @@
             --border-color: #334155;
             --badge-green: #22c55e;
             --badge-amber: #f59e0b;
+            --tech-tag-bg: #334155;
         }
 
         body {
@@ -143,6 +144,24 @@
             font-size: 0.85rem;
             color: var(--text-muted);
             margin-top: 0.5rem;
+            align-items: center;
+        }
+
+        .tech-stack {
+            margin-top: 0.6rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .tech-tag {
+            background: var(--tech-tag-bg);
+            color: var(--text-color);
+            padding: 2px 7px;
+            border-radius: 4px;
+            margin-right: 4px;
+            font-size: 0.75rem;
+            display: inline-block;
+            margin-top: 4px;
         }
 
         .badge {
@@ -174,6 +193,7 @@
             font-weight: 600;
             font-size: 0.9rem;
             transition: opacity 0.2s ease;
+            white-space: nowrap;
         }
 
         .apply-btn:hover {
@@ -192,7 +212,7 @@
 <div class="container">
     <header>
         <h1>Visa & WLB Job Tracker</h1>
-        <p class="subtitle">Filtered tech opportunities with confirmed visa support and work-life balance focus.</p>
+        <p class="subtitle">Filtered tech opportunities with confirmed visa support and tech stack extraction.</p>
     </header>
 
     <div class="filter-panel">
@@ -200,7 +220,7 @@
             <label for="regionSelect">Region</label>
             <select id="regionSelect" onchange="fetchJobs()">
                 <option value="all">All Regions</option>
-                <option value="global">Global / Remote</option>
+                <option value="global">Global / Outside India</option>
                 <option value="india">India</option>
             </select>
         </div>
@@ -216,20 +236,18 @@
 
         <label class="checkbox-group">
             <input type="checkbox" id="visaToggle" onchange="fetchJobs()">
-            <span>Visa Sponsorship Only</span>
+            <span>Strict Visa / Relocation Only</span>
         </label>
 
         <label class="checkbox-group">
             <input type="checkbox" id="preferredOnlyToggle" onchange="fetchJobs()">
-            <span><b>Preferred Companies</b> (Google, Meta, Stripe, Nvidia, etc.)</span>
+            <span><b>Preferred Companies</b></span>
         </label>
     </div>
 
     <div class="stats-bar" id="statsBar">Loading jobs...</div>
 
-    <div class="job-grid" id="jobGrid">
-        <!-- Job cards rendered here dynamically -->
-    </div>
+    <div class="job-grid" id="jobGrid"></div>
 </div>
 
 <script>
@@ -260,7 +278,7 @@
         grid.innerHTML = '';
 
         if (jobs.length === 0) {
-            grid.innerHTML = `<div class="empty-state">No matching roles found. Try toggling off some filters.</div>`;
+            grid.innerHTML = `<div class="empty-state">No matching roles found. Try adjusting your filters.</div>`;
             return;
         }
 
@@ -276,6 +294,12 @@
                 ? `<span class="badge badge-level">${job.role_level}</span>` 
                 : '';
 
+            const techStack = job.requirements 
+                ? job.requirements.split(', ').map(t => `<span class="tech-tag">${t}</span>`).join('') 
+                : '';
+
+            const targetUrl = (job.apply_link && job.apply_link !== '#') ? job.apply_link : '#';
+
             card.innerHTML = `
                 <div class="job-info">
                     <h3>${job.title}</h3>
@@ -284,16 +308,18 @@
                         ${levelBadge}
                         ${visaBadge}
                     </div>
+                    <div class="tech-stack">
+                        <strong>Tech:</strong> ${techStack}
+                    </div>
                 </div>
                 <div>
-                    <a href="${job.apply_url || '#'}" target="_blank" rel="noopener noreferrer" class="apply-btn">Apply Now</a>
+                    <a href="${targetUrl}" target="_blank" rel="noopener noreferrer" class="apply-btn">Apply Now</a>
                 </div>
             `;
             grid.appendChild(card);
         });
     }
 
-    // Initial fetch on page load
     document.addEventListener('DOMContentLoaded', fetchJobs);
 </script>
 
