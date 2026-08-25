@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Visa & High-WLB Tech Jobs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 font-sans text-gray-900">
+
+    <!-- Header -->
+    <header class="bg-indigo-600 text-white py-8 px-6 shadow-md">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold">RelocateTech Hub</h1>
+                <p class="text-indigo-200 text-sm mt-1">High-WLB & Visa-Sponsoring Roles for Indian SDEs</p>
+            </div>
+            <span class="bg-indigo-800 text-indigo-100 text-xs px-3 py-1 rounded-full font-semibold">Active Sponsorship</span>
+        </div>
+    </header>
+
+    <!-- Content Area -->
+    <main class="max-w-6xl mx-auto p-6">
+        
+        <!-- Controls -->
+        <div class="flex flex-wrap justify-between items-center mb-6 gap-4">
+            <h2 class="text-xl font-semibold text-gray-800">Available Openings</h2>
+            <div class="flex gap-2">
+                <button onclick="fetchJobs('')" class="bg-white border text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-100 shadow-sm">All Levels</button>
+                <button onclick="fetchJobs('SDE-1')" class="bg-white border text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-100 shadow-sm">SDE-1 Roles</button>
+                <button onclick="fetchJobs('SDE-2')" class="bg-white border text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-100 shadow-sm">SDE-2 Roles</button>
+            </div>
+        </div>
+
+        <!-- Job Cards Grid -->
+        <div id="job-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Dynamic Job Cards Inserted Here -->
+        </div>
+
+    </main>
+
+    <script>
+        async function fetchJobs(level = '') {
+            const response = await fetch(`/api/jobs?level=${level}`);
+            const jobs = await response.json();
+            const container = document.getElementById('job-container');
+            container.innerHTML = '';
+
+            if(jobs.length === 0) {
+                container.innerHTML = '<p class="text-gray-500">No active roles found matching criteria.</p>';
+                return;
+            }
+
+            jobs.forEach(job => {
+                const card = `
+                    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <h3 class="font-bold text-lg text-indigo-900">${job.title}</h3>
+                                <p class="text-sm font-medium text-gray-600">${job.company} • ${job.location}</p>
+                            </div>
+                            <span class="bg-emerald-100 text-emerald-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">${job.role_level}</span>
+                        </div>
+                        
+                        <div class="my-3 space-y-1 text-xs text-gray-600">
+                            <p><strong>WLB Rating:</strong> <span class="text-gray-800">${job.wlb_tier}</span></p>
+                            <p><strong>Visa Support:</strong> <span class="text-emerald-700 font-medium">${job.visa_sponsored}</span></p>
+                        </div>
+
+                        <div class="bg-gray-50 p-3 rounded-lg border my-3 text-xs text-gray-700">
+                            <strong>Key Requirements:</strong>
+                            <p class="mt-0.5">${job.requirements}</p>
+                        </div>
+
+                        <a href="${job.apply_link}" target="_blank" class="block text-center bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm py-2 rounded-lg transition mt-4">
+                            Apply & Request Relocation
+                        </a>
+                    </div>
+                `;
+                container.innerHTML += card;
+            });
+        }
+
+        // Initial Load
+        fetchJobs();
+    </script>
+
+</body>
+</html>
