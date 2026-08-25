@@ -2,88 +2,75 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Visa & High-WLB Tech Jobs</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Visa & WLB Tech Jobs Tracker</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f8; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .controls { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        select, button { padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; cursor: pointer; }
+        .job-card { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .job-title { margin: 0 0 5px 0; font-size: 18px; color: #111; }
+        .meta { color: #555; font-size: 14px; margin-bottom: 10px; }
+        .tag { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; background: #eef2ff; color: #4f46e5; margin-right: 5px; }
+        .btn-apply { display: inline-block; background: #2563eb; color: #fff; text-decoration: none; padding: 8px 16px; border-radius: 6px; margin-top: 10px; font-weight: bold; }
+    </style>
 </head>
-<body class="bg-gray-50 font-sans text-gray-900">
+<body>
+<div class="container">
+    <h2>Tech Jobs Tracker (Visa & WLB)</h2>
+    
+    <div class="controls">
+        <select id="regionFilter" onchange="fetchJobs()">
+            <option value="all">All Regions</option>
+            <option value="global">Global Only (Outside India)</option>
+            <option value="india">India Only</option>
+        </select>
 
-    <!-- Header -->
-    <header class="bg-indigo-600 text-white py-8 px-6 shadow-md">
-        <div class="max-w-6xl mx-auto flex justify-between items-center">
+        <select id="levelFilter" onchange="fetchJobs()">
+            <option value="all">All Levels (0-5 YOE)</option>
+            <option value="sde1">SDE-1 / Entry</option>
+            <option value="sde2">SDE-2 / Mid</option>
+        </select>
+
+        <select id="visaFilter" onchange="fetchJobs()">
+            <option value="false">All Listings</option>
+            <option value="true">Confirmed Visa / Remote Only</option>
+        </select>
+    </div>
+
+    <div id="jobList">Loading jobs...</div>
+</div>
+
+<script>
+async function fetchJobs() {
+    const region = document.getElementById('regionFilter').value;
+    const level = document.getElementById('levelFilter').value;
+    const visaOnly = document.getElementById('visaFilter').value;
+
+    const res = await fetch(`/api/jobs?region=${region}&level=${level}&visa_only=${visaOnly}`);
+    const jobs = await res.json();
+    
+    const container = document.getElementById('jobList');
+    if (jobs.length === 0) {
+        container.innerHTML = '<p>No jobs found for the selected filter.</p>';
+        return;
+    }
+
+    container.innerHTML = jobs.map(j => `
+        <div class="job-card">
+            <h3 class="job-title">${j.title}</h3>
+            <div class="meta"><strong>${j.company}</strong> • ${j.location}</div>
             <div>
-                <h1 class="text-3xl font-bold">RelocateTech Hub</h1>
-                <p class="text-indigo-200 text-sm mt-1">High-WLB & Visa-Sponsoring Roles for Indian SDEs</p>
+                <span class="tag">${j.role_level}</span>
+                <span class="tag">${j.visa_sponsored}</span>
             </div>
-            <span class="bg-indigo-800 text-indigo-100 text-xs px-3 py-1 rounded-full font-semibold">Active Sponsorship</span>
+            <p style="font-size: 13px; color: #666; margin-top: 8px;">${j.requirements}</p>
+            <a class="btn-apply" href="${j.apply_link}" target="_blank">Apply Now</a>
         </div>
-    </header>
+    `).join('');
+}
 
-    <!-- Content Area -->
-    <main class="max-w-6xl mx-auto p-6">
-        
-        <!-- Controls -->
-        <div class="flex flex-wrap justify-between items-center mb-6 gap-4">
-            <h2 class="text-xl font-semibold text-gray-800">Available Openings</h2>
-            <div class="flex gap-2">
-                <button onclick="fetchJobs('')" class="bg-white border text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-100 shadow-sm">All Levels</button>
-                <button onclick="fetchJobs('SDE-1')" class="bg-white border text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-100 shadow-sm">SDE-1 Roles</button>
-                <button onclick="fetchJobs('SDE-2')" class="bg-white border text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-100 shadow-sm">SDE-2 Roles</button>
-            </div>
-        </div>
-
-        <!-- Job Cards Grid -->
-        <div id="job-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Dynamic Job Cards Inserted Here -->
-        </div>
-
-    </main>
-
-    <script>
-        async function fetchJobs(level = '') {
-            const response = await fetch(`/api/jobs?level=${level}`);
-            const jobs = await response.json();
-            const container = document.getElementById('job-container');
-            container.innerHTML = '';
-
-            if(jobs.length === 0) {
-                container.innerHTML = '<p class="text-gray-500">No active roles found matching criteria.</p>';
-                return;
-            }
-
-            jobs.forEach(job => {
-                const card = `
-                    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition">
-                        <div class="flex justify-between items-start mb-2">
-                            <div>
-                                <h3 class="font-bold text-lg text-indigo-900">${job.title}</h3>
-                                <p class="text-sm font-medium text-gray-600">${job.company} • ${job.location}</p>
-                            </div>
-                            <span class="bg-emerald-100 text-emerald-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">${job.role_level}</span>
-                        </div>
-                        
-                        <div class="my-3 space-y-1 text-xs text-gray-600">
-                            <p><strong>WLB Rating:</strong> <span class="text-gray-800">${job.wlb_tier}</span></p>
-                            <p><strong>Visa Support:</strong> <span class="text-emerald-700 font-medium">${job.visa_sponsored}</span></p>
-                        </div>
-
-                        <div class="bg-gray-50 p-3 rounded-lg border my-3 text-xs text-gray-700">
-                            <strong>Key Requirements:</strong>
-                            <p class="mt-0.5">${job.requirements}</p>
-                        </div>
-
-                        <a href="${job.apply_link}" target="_blank" class="block text-center bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm py-2 rounded-lg transition mt-4">
-                            Apply & Request Relocation
-                        </a>
-                    </div>
-                `;
-                container.innerHTML += card;
-            });
-        }
-
-        // Initial Load
-        fetchJobs();
-    </script>
-
+fetchJobs();
+</script>
 </body>
 </html>
