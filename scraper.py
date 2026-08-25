@@ -1,9 +1,11 @@
 import sqlite3
 import requests
+import re
 
 def init_db():
     conn = sqlite3.connect('visa_wlb_jobs.db')
     cursor = conn.cursor()
+    # Drop existing table to clear any invalid cached '#' links
     cursor.execute('DROP TABLE IF EXISTS jobs')
     cursor.execute('''
         CREATE TABLE jobs (
@@ -25,7 +27,6 @@ def init_db():
 
 def is_visa_or_relocation(content_text, location_text):
     text = (content_text + " " + location_text).lower()
-    # Strictly check for actual visa/relocation terms, excluding generic terms like "anywhere"
     visa_keywords = [
         'visa', 'sponsorship', 'relocation', 'work permit', 
         'relocate', 'visa support', 'h1b', 'h-1b', 'immigration'
@@ -41,16 +42,15 @@ def extract_tech_stack(content_text):
         'sql', 'postgresql', 'mysql', 'mongodb', 'redis', 'kafka',
         'graphql', 'rest', 'distributed systems', 'microservices'
     ]
-    found_tech = [tech.title() if tech not in ['aws', 'gcp', 'sql', 'rest', 'c++'] else tech.upper() for tech in tech_keywords if kw_in_text(tech, text)]
     
+    found_tech = []
+    for tech in tech_keywords:
+        if bool(re.search(r'\b' + re.escape(tech) + r'\b', text)):
+            found_tech.append(tech.upper() if tech in ['aws', 'gcp', 'sql', 'rest', 'c++'] else tech.title())
+
     if found_tech:
         return ", ".join(list(set(found_tech))[:6])
     return "Software Engineering, CS Fundamentals"
-
-def kw_in_text(kw, text):
-    # Word boundary match helper to prevent partial matches like 'go' in 'algorithm'
-    import re
-    return bool(re.search(r'\b' + re.escape(kw) + r'\b', text))
 
 def fetch_greenhouse_jobs(company_slug, company_name, wlb_tier):
     url = f"https://boards-api.greenhouse.io/v1/boards/{company_slug}/jobs?content=true"
@@ -72,15 +72,22 @@ def fetch_greenhouse_jobs(company_slug, company_name, wlb_tier):
                     has_visa = is_visa_or_relocation(content, location)
                     visa_status = "Yes (Relocation / Sponsorship)" if has_visa else "Check Job Description"
 
-                    # Role Level Check
+                    # Role Level
                     role_level = "SDE-2 / Mid"
                     if any(kw in title_lower for kw in ['junior', 'associate', ' i', 'entry', 'grad', 'sde 1', 'sde-1', 'sde1']):
                         role_level = "SDE-1 / Entry"
 
-                    # Fix Apply Link Resolution
-                    apply_link = job.get('absolute_url') or f"https://boards.greenhouse.io/{company_slug}/jobs/{job.get('id')}"
+                    # Robust Apply Link Generator (Ensures complete URL, avoids '#')
+                    job_id = job.get('id')
+                    raw_link = job.get('absolute_url')
+                    if raw_link and raw_link.startswith('http'):
+                        apply_link = raw_link
+                    elif job_id:
+                        apply_link = f"https://boards.greenhouse.io/{company_slug}/jobs/{job_id}"
+                    else:
+                        apply_link = f"https://boards.greenhouse.io/{company_slug}"
 
-                    # Requirements Extraction
+                    # Extract Tech Keywords
                     tech_requirements = extract_tech_stack(content)
 
                     # Location Check
@@ -100,7 +107,6 @@ def scrape_visa_jobs():
     cursor = conn.cursor()
 
     all_jobs = []
-    # Core tracked companies
     companies = [
         ("stripe", "Stripe", "Tier 1 (High WLB)"),
         ("databricks", "Databricks", "Tier 1 (High WLB)"),
@@ -116,13 +122,13 @@ def scrape_visa_jobs():
 
     for job in all_jobs:
         cursor.execute('''
-            INSERT OR IGNORE INTO jobs (company, title, role_level, location, wlb_tier, visa_sponsored, requirements, apply_link, is_india)
+            INSERT OR REPLACE INTO jobs (company, title, role_level, location, wlb_tier, visa_sponsored, requirements, apply_link, is_india)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', job)
 
     conn.commit()
     conn.close()
-    print(f"Loaded {len(all_jobs)} parsed jobs into SQLite.")
+    print(f"Loaded {len(all_jobs)} jobs with direct links.")
 
 if __name__ == "__main__":
     scrape_visa_jobs()
