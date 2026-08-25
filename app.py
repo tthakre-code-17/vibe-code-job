@@ -2,7 +2,8 @@ import sqlite3
 from flask import Flask, jsonify, render_template, request
 from scraper import scrape_visa_jobs
 
-app = Flask(__name__)
+# Tell Flask to look in the current root directory ('.') for templates
+app = Flask(__name__, template_folder='.')
 
 def get_db_connection():
     conn = sqlite3.connect('visa_wlb_jobs.db')
@@ -25,6 +26,5 @@ def get_jobs():
     return jsonify([dict(job) for job in jobs])
 
 if __name__ == '__main__':
-    # Pre-populate database on startup if empty
     scrape_visa_jobs()
     app.run()
