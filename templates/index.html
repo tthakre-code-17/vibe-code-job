@@ -2,75 +2,300 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Visa & WLB Tech Jobs Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visa & WLB Job Tracker</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f8; margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; }
-        .controls { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        select, button { padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; cursor: pointer; }
-        .job-card { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .job-title { margin: 0 0 5px 0; font-size: 18px; color: #111; }
-        .meta { color: #555; font-size: 14px; margin-bottom: 10px; }
-        .tag { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; background: #eef2ff; color: #4f46e5; margin-right: 5px; }
-        .btn-apply { display: inline-block; background: #2563eb; color: #fff; text-decoration: none; padding: 8px 16px; border-radius: 6px; margin-top: 10px; font-weight: bold; }
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-color: #38bdf8;
+            --border-color: #334155;
+            --badge-green: #22c55e;
+            --badge-amber: #f59e0b;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 2rem 1rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            margin-bottom: 0.5rem;
+            color: var(--accent-color);
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        .filter-panel {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .filter-group label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        select {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 0.6rem 1rem;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            margin-top: auto;
+            margin-bottom: 0.2rem;
+        }
+
+        .checkbox-group input {
+            width: 1.1rem;
+            height: 1.1rem;
+            accent-color: var(--accent-color);
+            cursor: pointer;
+        }
+
+        .stats-bar {
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .job-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .job-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.1s ease, border-color 0.1s ease;
+        }
+
+        .job-card:hover {
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
+        }
+
+        .job-info h3 {
+            margin: 0 0 0.35rem 0;
+            font-size: 1.15rem;
+        }
+
+        .company-name {
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        .job-meta {
+            display: flex;
+            gap: 0.75rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+        }
+
+        .badge {
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-visa {
+            background-color: rgba(34, 197, 94, 0.15);
+            color: var(--badge-green);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .badge-level {
+            background-color: rgba(245, 158, 11, 0.15);
+            color: var(--badge-amber);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .apply-btn {
+            background-color: var(--accent-color);
+            color: #0f172a;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: opacity 0.2s ease;
+        }
+
+        .apply-btn:hover {
+            opacity: 0.9;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
     </style>
 </head>
 <body>
+
 <div class="container">
-    <h2>Tech Jobs Tracker (Visa & WLB)</h2>
-    
-    <div class="controls">
-        <select id="regionFilter" onchange="fetchJobs()">
-            <option value="all">All Regions</option>
-            <option value="global">Global Only (Outside India)</option>
-            <option value="india">India Only</option>
-        </select>
+    <header>
+        <h1>Visa & WLB Job Tracker</h1>
+        <p class="subtitle">Filtered tech opportunities with confirmed visa support and work-life balance focus.</p>
+    </header>
 
-        <select id="levelFilter" onchange="fetchJobs()">
-            <option value="all">All Levels (0-5 YOE)</option>
-            <option value="sde1">SDE-1 / Entry</option>
-            <option value="sde2">SDE-2 / Mid</option>
-        </select>
+    <div class="filter-panel">
+        <div class="filter-group">
+            <label for="regionSelect">Region</label>
+            <select id="regionSelect" onchange="fetchJobs()">
+                <option value="all">All Regions</option>
+                <option value="global">Global / Remote</option>
+                <option value="india">India</option>
+            </select>
+        </div>
 
-        <select id="visaFilter" onchange="fetchJobs()">
-            <option value="false">All Listings</option>
-            <option value="true">Confirmed Visa / Remote Only</option>
-        </select>
+        <div class="filter-group">
+            <label for="levelSelect">Role Level</label>
+            <select id="levelSelect" onchange="fetchJobs()">
+                <option value="all">All Levels</option>
+                <option value="sde1">SDE-1 / Entry</option>
+                <option value="sde2">SDE-2 / Mid</option>
+            </select>
+        </div>
+
+        <label class="checkbox-group">
+            <input type="checkbox" id="visaToggle" onchange="fetchJobs()">
+            <span>Visa Sponsorship Only</span>
+        </label>
+
+        <label class="checkbox-group">
+            <input type="checkbox" id="preferredOnlyToggle" onchange="fetchJobs()">
+            <span><b>Preferred Companies</b> (Google, Meta, Stripe, Nvidia, etc.)</span>
+        </label>
     </div>
 
-    <div id="jobList">Loading jobs...</div>
+    <div class="stats-bar" id="statsBar">Loading jobs...</div>
+
+    <div class="job-grid" id="jobGrid">
+        <!-- Job cards rendered here dynamically -->
+    </div>
 </div>
 
 <script>
-async function fetchJobs() {
-    const region = document.getElementById('regionFilter').value;
-    const level = document.getElementById('levelFilter').value;
-    const visaOnly = document.getElementById('visaFilter').value;
+    function fetchJobs() {
+        const region = document.getElementById('regionSelect').value;
+        const level = document.getElementById('levelSelect').value;
+        const visaOnly = document.getElementById('visaToggle').checked;
+        const preferredOnly = document.getElementById('preferredOnlyToggle').checked;
 
-    const res = await fetch(`/api/jobs?region=${region}&level=${level}&visa_only=${visaOnly}`);
-    const jobs = await res.json();
-    
-    const container = document.getElementById('jobList');
-    if (jobs.length === 0) {
-        container.innerHTML = '<p>No jobs found for the selected filter.</p>';
-        return;
+        const url = `/api/jobs?region=${region}&level=${level}&visa_only=${visaOnly}&preferred_only=${preferredOnly}`;
+
+        document.getElementById('statsBar').innerText = 'Updating jobs...';
+
+        fetch(url)
+            .then(response => response.json())
+            .then(jobs => renderJobs(jobs))
+            .catch(err => {
+                console.error('Error fetching jobs:', err);
+                document.getElementById('statsBar').innerText = 'Failed to load jobs.';
+            });
     }
 
-    container.innerHTML = jobs.map(j => `
-        <div class="job-card">
-            <h3 class="job-title">${j.title}</h3>
-            <div class="meta"><strong>${j.company}</strong> • ${j.location}</div>
-            <div>
-                <span class="tag">${j.role_level}</span>
-                <span class="tag">${j.visa_sponsored}</span>
-            </div>
-            <p style="font-size: 13px; color: #666; margin-top: 8px;">${j.requirements}</p>
-            <a class="btn-apply" href="${j.apply_link}" target="_blank">Apply Now</a>
-        </div>
-    `).join('');
-}
+    function renderJobs(jobs) {
+        const grid = document.getElementById('jobGrid');
+        const stats = document.getElementById('statsBar');
 
-fetchJobs();
+        stats.innerText = `Showing ${jobs.length} roles matching your criteria`;
+        grid.innerHTML = '';
+
+        if (jobs.length === 0) {
+            grid.innerHTML = `<div class="empty-state">No matching roles found. Try toggling off some filters.</div>`;
+            return;
+        }
+
+        jobs.forEach(job => {
+            const card = document.createElement('div');
+            card.className = 'job-card';
+
+            const visaBadge = job.visa_sponsored && job.visa_sponsored.toLowerCase().startsWith('yes')
+                ? `<span class="badge badge-visa">Visa Supported</span>` 
+                : '';
+
+            const levelBadge = job.role_level 
+                ? `<span class="badge badge-level">${job.role_level}</span>` 
+                : '';
+
+            card.innerHTML = `
+                <div class="job-info">
+                    <h3>${job.title}</h3>
+                    <div><span class="company-name">${job.company}</span> • ${job.location || 'Remote / Unspecified'}</div>
+                    <div class="job-meta">
+                        ${levelBadge}
+                        ${visaBadge}
+                    </div>
+                </div>
+                <div>
+                    <a href="${job.apply_url || '#'}" target="_blank" rel="noopener noreferrer" class="apply-btn">Apply Now</a>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    // Initial fetch on page load
+    document.addEventListener('DOMContentLoaded', fetchJobs);
 </script>
+
 </body>
 </html>
