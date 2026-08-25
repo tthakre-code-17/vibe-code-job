@@ -3,14 +3,11 @@ import sqlite3
 from flask import Flask, jsonify, render_template, request
 from scraper import scrape_visa_jobs
 
-app = Flask(__name__, template_folder='.')
+app = Flask(__name__)
 
 
 def init_db_if_needed():
-    """Ensure database file and jobs table exist before querying."""
     db_path = 'visa_wlb_jobs.db'
-
-    # Check if database or jobs table is missing
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute(
@@ -20,7 +17,6 @@ def init_db_if_needed():
     conn.close()
 
     if not table_exists:
-        print("Database/Table missing. Running initial scraper...")
         scrape_visa_jobs()
 
 
