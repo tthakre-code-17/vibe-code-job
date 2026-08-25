@@ -5,16 +5,14 @@ from scraper import scrape_visa_jobs
 
 app = Flask(__name__)
 
-# List of preferred high-tier tech companies
 PREFERRED_COMPANIES = [
     'stripe', 'adobe', 'google', 'walmart', 'linkedin', 
     'intuit', 'atlassian', 'atlaasian', 'nvidia', 'meta', 
-    'airbnb', 'nutanix', 'cisco', 'broadcom'
+    'airbnb', 'nutanix', 'cisco', 'broadcom', 'databricks', 
+    'gitlab', 'coinbase', 'cloudflare'
 ]
 
-
 def init_db_if_needed():
-    """Ensure database file and jobs table exist before querying."""
     db_path = 'visa_wlb_jobs.db'
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
@@ -25,14 +23,12 @@ def init_db_if_needed():
     conn.close()
 
     if not table_exists:
-        print("Database/Table missing. Running scraper...")
+        print("Database missing/empty. Initializing scraper...")
         scrape_visa_jobs()
-
 
 @app.route('/')
 def index():
     return render_template('index.html')
-
 
 @app.route('/api/jobs', methods=['GET'])
 def get_jobs():
@@ -50,23 +46,19 @@ def get_jobs():
     query = 'SELECT * FROM jobs WHERE 1=1'
     params = []
 
-    # Region filter
     if region == 'global':
         query += ' AND is_india = 0'
     elif region == 'india':
         query += ' AND is_india = 1'
 
-    # Level filter
     if level == 'sde1':
         query += " AND role_level = 'SDE-1 / Entry'"
     elif level == 'sde2':
         query += " AND role_level = 'SDE-2 / Mid'"
 
-    # Visa filter
     if visa_only == 'true':
         query += " AND visa_sponsored LIKE 'Yes%'"
 
-    # Preferred companies filter
     if preferred_only == 'true':
         placeholders = ' OR '.join(['LOWER(company) LIKE ?' for _ in PREFERRED_COMPANIES])
         query += f' AND ({placeholders})'
@@ -77,7 +69,6 @@ def get_jobs():
     conn.close()
 
     return jsonify(jobs)
-
 
 if __name__ == '__main__':
     init_db_if_needed()
