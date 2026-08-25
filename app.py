@@ -1,51 +1,47 @@
+from flask import Flask, jsonify, request, render_template
 import sqlite3
-from flask import Flask, jsonify, render_template, request
-from scraper import scrape_visa_jobs, init_db
+import os
+from scraper import scrape_visa_jobs
 
-# Support index.html either in root ('.') or in 'templates/'
-app = Flask(__name__, template_folder='.')
-
-def get_db_connection():
-    conn = sqlite3.connect('visa_wlb_jobs.db')
-    conn.row_factory = sqlite3.Row
-    return conn
-
-# Ensure DB table exists and is populated when Gunicorn initializes the worker
-def initialize_app():
-    init_db()
-    try:
-        conn = get_db_connection()
-        count = conn.execute('SELECT COUNT(*) FROM jobs').fetchone()[0]
-        conn.close()
-        # If DB is empty, run scraper on startup
-        if count == 0:
-            scrape_visa_jobs()
-    except Exception as e:
-        print(f"Startup DB init warning: {e}")
-        scrape_visa_jobs()
-
-# Run initialization immediately on script load
-initialize_app()
+app = Flask(__name__)
 
 @app.route('/')
-def home():
-    try:
-        return render_template('index.html')
-    except Exception:
-        return render_template('templates/index.html')
+def index():
+    return render_template('index.html')
 
 @app.route('/api/jobs', methods=['GET'])
 def get_jobs():
-    level_filter = request.args.get('level', '')
-    conn = get_db_connection()
-    try:
-        if level_filter:
-            jobs = conn.execute('SELECT * FROM jobs WHERE role_level LIKE ?', (f'%{level_filter}%',)).fetchall()
-        else:
-            jobs = conn.execute('SELECT * FROM jobs').fetchall()
-        return jsonify([dict(job) for job in jobs])
-    finally:
-        conn.close()
+    region = request.args.get('region', 'all')
+    level = request.args.get('level', 'all')
+    visa_only = request.args.get('visa_only', 'false')
+
+    conn = sqlite3.connect('visa_wlb_jobs.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    query = "SELECT * FROM jobs WHERE 1=1"
+    params = []
+
+    if region == 'global':
+        query += " AND is_india = 0"
+    elif region == 'india':
+        query += " AND is_india = 1"
+
+    if level == 'sde1':
+        query += " AND role_level = 'SDE-1 / Entry'"
+    elif level == 'sde2':
+        query += " AND role_level = 'SDE-2 / Mid'"
+
+    if visa_only == 'true':
+        query += " AND visa_sponsored LIKE 'Yes%'"
+
+    cursor.execute(query, params)
+    jobs = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+
+    return jsonify(jobs)
 
 if __name__ == '__main__':
-    app.run()
+    if not os.path.exists('visa_wlb_jobs.db'):
+        scrape_visa_jobs()
+    app.run(host='0.0.0.0', port=5000)
