@@ -298,7 +298,9 @@
                 ? job.requirements.split(', ').map(t => `<span class="tech-tag">${t}</span>`).join('') 
                 : '';
 
-            const targetUrl = (job.apply_link && job.apply_link !== '#') ? job.apply_link : '#';
+            // Handle links safely (Guarantees valid outbound HTTP/HTTPS link)
+            let rawUrl = job.apply_link || job.apply_url || '';
+            let targetUrl = (rawUrl.startsWith('http')) ? rawUrl : '#';
 
             card.innerHTML = `
                 <div class="job-info">
